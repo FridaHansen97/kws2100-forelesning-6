@@ -5,12 +5,20 @@ import { useEffect, useRef } from "react";
 import { useGeographic } from "ol/proj.js";
 
 import "ol/ol.css";
+import VectorSource from "ol/source/Vector.js";
+import VectorLayer from "ol/layer/Vector.js";
+import { Draw } from "ol/interaction.js";
 
 useGeographic();
 
+const drawingVectorSource = new VectorSource();
+const drawingLayer = new VectorLayer({
+  source: drawingVectorSource,
+});
+
 const map = new Map({
   view: new View({ center: [10.7, 59.9], zoom: 10 }),
-  layers: [new TileLayer({ source: new OSM() })],
+  layers: [new TileLayer({ source: new OSM() }), drawingLayer],
 });
 
 export function Application() {
@@ -19,5 +27,19 @@ export function Application() {
     map.setTarget(mapRef.current!);
   }, []);
 
-  return <div ref={mapRef}></div>;
+  function handleClick() {
+    map.addInteraction(
+      new Draw({
+        type: "Point",
+        source: drawingVectorSource,
+      }),
+    );
+  }
+
+  return (
+    <>
+      <button onClick={handleClick}>Add point</button>
+      <div ref={mapRef}></div>
+    </>
+  );
 }
