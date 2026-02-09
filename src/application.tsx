@@ -9,7 +9,7 @@ import VectorSource from "ol/source/Vector.js";
 import VectorLayer from "ol/layer/Vector.js";
 import { Draw } from "ol/interaction.js";
 import { GeoJSON } from "ol/format.js";
-import { Fill, RegularShape, Stroke, Style } from "ol/style.js";
+import { Fill, RegularShape, Stroke, Style, Text } from "ol/style.js";
 
 const geoJson = new GeoJSON();
 
@@ -20,7 +20,9 @@ const drawingLayer = new VectorLayer({
   source: drawingVectorSource,
   style: (feature) => {
     const color = feature.getProperties()["color"] || "blue";
-    return new Style({
+    const label = feature.getProperties()["label"];
+
+    const imageStyle = new Style({
       image: new RegularShape({
         radius: 10,
         points: 4,
@@ -31,6 +33,20 @@ const drawingLayer = new VectorLayer({
         }),
       }),
     });
+
+    if (label) {
+      return [
+        imageStyle,
+        new Style({
+          text: new Text({
+            text: label,
+            font: "bold 18px serif",
+            offsetY: 25,
+          }),
+        }),
+      ];
+    }
+    return imageStyle;
   },
 });
 
@@ -50,6 +66,7 @@ export function Application() {
 
   const [selectedFeature, setSelectedFeature] = useState<Feature>();
   const [color, setColor] = useState("blue");
+  const [label, setLabel] = useState("");
 
   useEffect(() => {
     map.setTarget(mapRef.current!);
@@ -66,7 +83,11 @@ export function Application() {
   }, []);
 
   useEffect(() => {
-    if (selectedFeature) dialogRef.current?.showModal();
+    if (selectedFeature) {
+      dialogRef.current?.showModal();
+      setColor(selectedFeature.getProperties()["color"] || "#0000ff");
+      setLabel(selectedFeature.getProperties()["label"] || "");
+    }
   }, [selectedFeature]);
   useEffect(() => {
     if (selectedFeature) {
@@ -75,6 +96,13 @@ export function Application() {
       });
     }
   }, [color]);
+  useEffect(() => {
+    if (selectedFeature) {
+      selectedFeature.setProperties({
+        label,
+      });
+    }
+  }, [label]);
 
   function handleClick() {
     const draw = new Draw({
@@ -94,11 +122,18 @@ export function Application() {
       <dialog ref={dialogRef}>
         <h1>You have selected a feature</h1>
         <form>
-          <input
-            type={"color"}
-            value={color}
-            onChange={(e) => setColor(e.target.value)}
-          />
+          <p>
+            Color:{" "}
+            <input
+              type={"color"}
+              value={color}
+              onChange={(e) => setColor(e.target.value)}
+            />
+          </p>
+          <p>
+            Label:{" "}
+            <input value={label} onChange={(e) => setLabel(e.target.value)} />
+          </p>
         </form>
       </dialog>
       <div ref={mapRef}></div>
